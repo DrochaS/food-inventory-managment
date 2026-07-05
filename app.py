@@ -52,7 +52,7 @@ def fetch_from_openfoodfacts(barcode):
 
 # --- API ENDPOINTS ---
 
-
+#GET method to retrieve all items in the inventory
 @app.route("/inventory", methods=["GET"])
 def get_all_items():
     """Fetch all items from the inventory."""
@@ -66,6 +66,42 @@ def get_single_item(item_id):
     if item:
         return jsonify(item), 200
     return jsonify({"error": "Item not found"}), 404
+
+#POST method to add a new item to the inventory, with optional enrichment from OpenFoodFacts
+@app.route("/inventory", methods=["POST"])
+def add_item():
+    """Add a new item, enriching data from OpenFoodFacts if a barcode is supplied."""
+    body = request.get_json() or {}
+
+    barcode = body.get("barcode")
+    price = body.get("price", 0.0)
+    stock = body.get("stock", 0)
+
+    # Initialize empty base info
+    product_name = body.get("product_name", "Unknown Item")
+    brands = body.get("brands", "Generic")
+    ingredients_text = body.get("ingredients_text", "N/A")
+
+    # If barcode is given, attempt to auto-enrich using OpenFoodFacts API
+    if barcode:
+        external_data = fetch_from_openfoodfacts(barcode)
+        if external_data:
+            product_name = external_data["product_name"]
+            brands = external_data["brands"]
+            ingredients_text = external_data["ingredients_text"]
+
+    new_item = {
+        "id": str(uuid.uuid4())[:8],  # Generate a unique shortened identifier
+        "barcode": barcode or "Manual Entry",
+        "product_name": product_name,
+        "brands": brands,
+        "ingredients_text": ingredients_text,
+        "price": float(price),
+        "stock": int(stock),
+    }
+
+    mock_inventory.append(new_item)
+    return jsonify(new_item), 201
 
 
 
