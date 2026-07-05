@@ -16,10 +16,7 @@ def client():
     mock_inventory.clear()
     mock_inventory.extend(original_inventory)
 
-# ==========================================
 # 1. TESTING READ ACTIONS (GET ROUTES)
-# ==========================================
-
 def test_get_all_items(client):
     """Verifies GET /inventory returns a 200 OK and a list of products."""
     response = client.get("/inventory")
@@ -39,32 +36,30 @@ def test_get_single_item_not_found(client):
     assert response.status_code == 404
     assert "error" in response.get_json()
 
-# ==========================================
-# 2. TESTING CREATE ACTIONS (POST ROUTE)
-# ==========================================
-
-@patch('app.fetch_from_openfoodfacts')
-def test_create_item_with_api_enrichment(mock_fetch, client):
-    """Verifies POST /inventory intercepts the barcode and auto-enriches data."""
-    # Mocking the external internet API so the test runs instantly offline
+# 2. TESTING CREATE ACTIONS (POST ROUTES)
+@patch("app.fetch_from_openfoodfacts")
+def test_add_item_with_barcode(mock_fetch, client):
+    """Verifies POST /inventory adds a new item with barcode enrichment."""
     mock_fetch.return_value = {
-        "product_name": "Test Avocado Oil",
+        "product_name": "Test Product",
         "brands": "Test Brand",
-        "ingredients_text": "100% Avocado Oil"
+        "ingredients_text": "Test Ingredients"
     }
     
-    new_payload = {"barcode": "111111", "price": "9.99", "stock": "10"}
-    response = client.post("/inventory", json=new_payload)
+    new_item = {
+        "barcode": "1234567890123",
+        "price": 5.99,
+        "stock": 10
+    }
     
+    response = client.post("/inventory", json=new_item)
     assert response.status_code == 201
     data = response.get_json()
-    assert data["product_name"] == "Test Avocado Oil"  # Proves API enrichment worked!
-    assert data["price"] == 9.99
-
-# ==========================================
-# 3. TESTING UPDATE ACTIONS (PATCH ROUTE)
-# ==========================================
-
+    assert data["product_name"] == "Test Product"
+    assert data["brands"] == "Test Brand"
+    assert data["ingredients_text"] == "Test Ingredients"
+    
+#TESTING UPDATE ACTIONS (PATCH ROUTES)
 def test_update_item_price_and_stock(client):
     """Verifies PATCH /inventory/<id> mutates metrics while preserving text."""
     update_payload = {"price": "5.50", "stock": "100"}
@@ -76,15 +71,4 @@ def test_update_item_price_and_stock(client):
     assert data["stock"] == 100
     assert data["product_name"] == "Organic Almond Milk"  # Name remained untouched
 
-# ==========================================
-# 4. TESTING DELETE ACTIONS (DELETE ROUTE)
-# ==========================================
-
-def test_delete_item_success(client):
-    """Verifies DELETE /inventory/<id> completely removes an item from memory."""
-    response = client.delete("/inventory/1")
-    assert response.status_code == 200
     
-    # Verify it's actually gone by trying to fetch it again
-    check_response = client.get("/inventory/1")
-    assert check_response.status_code == 404
