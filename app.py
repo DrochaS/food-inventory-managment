@@ -102,8 +102,19 @@ def add_item():
 
     mock_inventory.append(new_item)
     return jsonify(new_item), 201
+ 
+ #PATCH method to update an existing item in the inventory
+@app.route("/inventory/<string:item_id>", methods=["PATCH"])
+def update_item(item_id):
+    """Update an existing item by its ID."""
+    item = next((i for i in mock_inventory if i["id"] == item_id), None)
+    if not item:
+        return jsonify({"error": "Item not found"}), 404
 
+    body = request.get_json() or {}
+    item.update({k: v for k, v in body.items() if k in item})
 
+    return jsonify(item), 200
 
 
 if __name__ == "__main__":
