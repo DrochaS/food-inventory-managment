@@ -71,4 +71,12 @@ def test_update_item_price_and_stock(client):
     assert data["stock"] == 100
     assert data["product_name"] == "Organic Almond Milk"  # Name remained untouched
 
+#TESTING DELETE ACTIONS (DELETE ROUTES)
+def test_delete_item_success(client):
+    """Verifies DELETE /inventory/<id> completely removes an item from memory."""
+    response = client.delete("/inventory/1")
+    assert response.status_code == 200
     
+    # Verify it's actually gone by trying to fetch it again
+    check_response = client.get("/inventory/1")
+    assert check_response.status_code == 404
