@@ -128,8 +128,22 @@ def delete_item(item_id):
     mock_inventory = [i for i in mock_inventory if i["id"] != item_id]
     return jsonify({"message": "Item deleted successfully"}), 200
 
-
-
+#GET method to check external API for product information
+@app.route("/openfoodfacts/<string:barcode>", methods=["GET"])
+def check_external_api(barcode):
+    """Direct verification endpoint to find data on OpenFoodFacts API."""
+    external_data = fetch_from_openfoodfacts(barcode)
+    if external_data:
+        return jsonify({"status": "found", "data": external_data}), 200
+    return (
+        jsonify(
+            {
+                "status": "failed",
+                "message": "Product not found in OpenFoodFacts database",
+            }
+        ),
+        404,
+    )
 
 if __name__ == "__main__":
     app.run(port=5000, debug=True)
